@@ -1,0 +1,2 @@
+PACKS = 'packs'
+GRAMS = 'grams'
