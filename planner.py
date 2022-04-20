@@ -1,6 +1,8 @@
 import json
 import os
+
 import units
+import user_menu
 
 def __init__():
     return
@@ -12,14 +14,17 @@ def main():
                          'ground pork' : (500, units.GRAMS) }
     }
 
-    recipes = None
+    recipes = {}
 
-    # read json recipe book from file
-    with open('recipes.json', 'r',) as recipe_book:
-        recipes = json.load(recipe_book)
-        print(json.dumps(recipes, indent=4))
+    try:
+        # read json recipe book from file
+        with open('recipes.json', 'r',) as recipe_book:
+            recipes = json.load(recipe_book)
+    except json.JSONDecodeError:
+        print('Valid .json file not found. Continuing wtihout reading...')
 
     # user does stuff
+    print(user_menu.START)
 
     # write json recipe back to file
     with open('recipes.json', 'w') as recipe_book:
