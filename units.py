@@ -4,7 +4,7 @@ class Units:
     PACKS = 'packs'
     GRAMS = 'grams'
 
-class MealType():
+class MealType:
     BREAKFAST = 'breakfast'
     LUNCH = 'lunch'
     DINNER = 'dinner'

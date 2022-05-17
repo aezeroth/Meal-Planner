@@ -22,10 +22,15 @@ START = """
 It is currently {}.
 
 1. Add a recipe
-2. Edit/remove a recipe
-3. Plan this week's meals!
+2. Remove a recipe
+3. Generate a new meal plan for the week!
 4. View recipe book
 5. View shopping list
 6. View current meal plan
 """.format(current_date)
 
+EDIT_OPTIONS = """
+1. Ingredients
+2. Meal times
+3. Tags
+"""
