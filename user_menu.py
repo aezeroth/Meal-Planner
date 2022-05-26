@@ -3,6 +3,16 @@ import datetime
 # console for now
 current_date = datetime.datetime.now().strftime('%A %B %d, %Y')
 
+CHOICES = """
+1. Add a recipe
+2. Remove a recipe
+3. Generate a new meal plan for the week!
+4. View recipe book
+5. View shopping list
+6. View current meal plan
+7. Exit
+"""
+
 START = """ 
         
 ░██╗░░░░░░░██╗███████╗██╗░░░░░░█████╗░░█████╗░███╗░░░███╗███████╗  ████████╗░█████╗░  ████████╗██╗░░██╗███████╗
@@ -21,13 +31,8 @@ START = """
 
 It is currently {}.
 
-1. Add a recipe
-2. Remove a recipe
-3. Generate a new meal plan for the week!
-4. View recipe book
-5. View shopping list
-6. View current meal plan
-""".format(current_date)
+{}
+""".format(current_date, CHOICES)
 
 EDIT_OPTIONS = """
 1. Ingredients

@@ -1,7 +1,9 @@
 import json
 import os
 import random
+import re
 from datetime import *
+from fractions import Fraction
 
 from units import *
 import user_menu
@@ -32,7 +34,6 @@ def write_data(recipes, meal_plan):
     with open('planner.json', 'w') as planner:
         json.dump(meal_plan, planner, indent=4)
 
-
 def collect_data():
     recipes, meal_plan = {}, {}
 
@@ -49,8 +50,6 @@ def collect_data():
 
     return recipes, meal_plan
 
-
-
 def add_recipe(recipes):
     '''
     Adds a recipe with user-inputted name, quantity, ingredients, meal times, and tags.
@@ -65,15 +64,17 @@ def add_recipe(recipes):
     try:
         while True:
             ingredient_name = input('Ingredient name:').lower().strip()
-            quantity = input('Quantity: ').split()
-            units = ''
-            if (len(quantity) >= 2):
-                units = quantity[1].lower()
-            amount = float(quantity[0])
+            quantity = input('Quantity: ')
 
-            info['ingredients'][ingredient_name] = (amount, units)
+            if not bool(re.match("\A(\d+([\/]\d*){0,1} (\w|\s)*)\Z", quantity)):
+                print("Invalid quantity. Needs to be '<number> <units>' ")
+                return
+            
+            amount, unit = quantity.split(' ', 1)
+
+            info['ingredients'][ingredient_name] = (amount, unit)
         
-            to_continue = input('Continue? (y/*)').lower()
+            to_continue = input('More ingredients? (y/*)').lower()
             if to_continue == 'y':
                 continue
             else:
@@ -132,9 +133,10 @@ def plan_meals(recipes):
             
             if dish in too_recent:
                 continue
-            if meal_type in recipes[dish]['tags']:
-                too_recent.pop(0)
-                too_recent.append(dish)
+            if meal_type in recipes[dish]['meal times']:
+                if len(too_recent) != 0:
+                    too_recent.pop(0)
+                    too_recent.append(dish)
                 return dish
             if traversed == recipes:
                 print('Unable to find a valid {}.'.format(meal_type))
@@ -153,9 +155,11 @@ def plan_meals(recipes):
         lunch = pick_meal(MealType.LUNCH)
         dinner = pick_meal(MealType.DINNER)
 
-        plan[day] = (meal_day, [recipes[breakfast], recipes[lunch], recipes[dinner]])
+        plan[day] = (meal_day.isoformat(), [recipes[breakfast], recipes[lunch], recipes[dinner]])
 
         meal_day += timedelta(days=1)
+
+    print(plan)
 
     return plan
 
@@ -165,32 +169,42 @@ def print_recipes(recipes):
     for idx, name in enumerate(recipe_names):
         print('{}. {}'.format(idx, name))
 
+    input('Press ENTER to continue...')
+
 def get_shopping_list(meal_plan):
     return
 
 def view_meal_plan(meal_plan):
     return
 
+def exit_planner(recipes, meal_plan):
+    write_data(recipes, meal_plan)
+    quit()
 
 def user_phase(recipes, meal_plan):
-    try:
-        choice = input('>> ')
+    while True:
+        try:
+            choice = input('>> ')
 
-        if choice == '1':
-            add_recipe(recipes)
-        elif choice == '2':
-            remove_recipe(recipes)
-        elif choice == '3':
-            MEAL_PLAN = plan_meals(recipes)
-        elif choice == '4':
-            print_recipes(recipes)
-        elif choice == '5':
-            get_shopping_list(meal_plan)
-        elif choice == '6':
-            view_meal_plan(meal_plan)
+            if choice == '1':
+                add_recipe(recipes)
+            elif choice == '2':
+                remove_recipe(recipes)
+            elif choice == '3':
+                meal_plan = plan_meals(recipes)
+            elif choice == '4':
+                print_recipes(recipes)
+            elif choice == '5':
+                get_shopping_list(meal_plan)
+            elif choice == '6':
+                view_meal_plan(meal_plan)
+            elif choice == '7':
+                exit_planner(recipes, meal_plan)
+            
+            print(user_menu.CHOICES)
 
-    except ValueError:
-        print('Invalid input.')
+        except ValueError:
+            print('Invalid input.')
 
 
 def edit_item_recursive(item):
@@ -237,25 +251,8 @@ def main():
 
     (RECIPES, MEAL_PLAN) = collect_data()
     
-    while True:
-        # user does stuff
-        user_phase(RECIPES, MEAL_PLAN)
-        
-        try:
-            choice = input('Continue (y/n)')
-
-            if (choice.lower() == 'y'):
-                continue
-            else:
-                break
-
-        except ValueError:
-            print("Invalid input. Continuing regardless.")
-
-
-    write_data(RECIPES, MEAL_PLAN)
-
-    input('Press ENTER to quit:')
+    # user does stuff
+    user_phase(RECIPES, MEAL_PLAN)
 
 if __name__ == "__main__":
     main()
