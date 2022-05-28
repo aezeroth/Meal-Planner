@@ -155,11 +155,9 @@ def plan_meals(recipes):
         lunch = pick_meal(MealType.LUNCH)
         dinner = pick_meal(MealType.DINNER)
 
-        plan[day] = (meal_day.isoformat(), [recipes[breakfast], recipes[lunch], recipes[dinner]])
+        plan[day] = (meal_day.isoformat(), [(breakfast, recipes[breakfast]), (lunch, recipes[lunch]), (dinner, recipes[dinner])])
 
         meal_day += timedelta(days=1)
-
-    print(plan)
 
     return plan
 
@@ -175,6 +173,13 @@ def get_shopping_list(meal_plan):
     return
 
 def view_meal_plan(meal_plan):
+    for day_num in meal_plan:
+        day = datetime.fromisoformat(meal_plan[day_num][0])
+        dishes = meal_plan[day_num][1]
+        
+        datestring = day.strftime('%A %b %d %y')
+
+        user_menu.print_meal_day(datestring, dishes)
     return
 
 def exit_planner(recipes, meal_plan):

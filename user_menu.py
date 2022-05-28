@@ -10,7 +10,7 @@ CHOICES = """
 4. View recipe book
 5. View shopping list
 6. View current meal plan
-7. Exit
+7. Save & Exit
 """
 
 START = """ 
@@ -39,3 +39,10 @@ EDIT_OPTIONS = """
 2. Meal times
 3. Tags
 """
+
+
+def print_meal_day(datestring, dishes):
+    meal_day = "{}:\n\t".format(datestring)
+    for dish in dishes:
+        meal_day += "{}\n\t".format(dish[0])
+    print(meal_day)
