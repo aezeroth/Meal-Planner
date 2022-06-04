@@ -3,15 +3,15 @@ import datetime
 # console for now
 current_date = datetime.datetime.now().strftime('%A %B %d, %Y')
 
-CHOICES = """
-1. Add a recipe
-2. Remove a recipe
-3. Generate a new meal plan for the week!
-4. View recipe book
-5. View shopping list
-6. View current meal plan
-7. Save & Exit
-"""
+LIST_OF_CHOICES = ['ADD a recipe', 
+                   'REMOVE a recipe', 
+                   'GENERATE a new MEAL PLAN for the week!',
+                   'VIEW RECIPE book', 
+                   'VIEW SHOPPING LIST', 
+                   'VIEW current MEAL PLAN', 
+                   'SAVE & EXIT']
+
+CHOICES = "".join(["{}. {}\n".format(i+1, LIST_OF_CHOICES[i]) for i in range(len(LIST_OF_CHOICES))])
 
 START = """ 
         

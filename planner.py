@@ -8,8 +8,13 @@ from fractions import Fraction
 from units import *
 import user_menu
 
-RECIPES = {}
-MEAL_PLAN = {}
+RECIPES = 'recipes'
+MEAL_PLAN = 'meal_plan'
+SHOPPING_LIST = 'shopping_list'
+
+MEALS_PER_DAY = 3
+DAYS_TO_PLAN = 7
+DAYS_WITH_UNIQUE_MEALS = 3
 
 sample = {
     'Mapo Tofu' : { 
@@ -20,62 +25,74 @@ sample = {
     }
 }
 
-MEALS_PER_DAY = 3
-DAYS_TO_PLAN = 7
-DAYS_WITH_UNIQUE_MEALS = 3
 
 #TODO: plan just one day
 
-def write_data(recipes, meal_plan):
+def write_data(data):
     # write json recipe back to file
     with open('recipes.json', 'w') as recipe_book:
-        json.dump(recipes, recipe_book, indent=4)
+        json.dump(data[RECIPES], recipe_book, indent=4)
 
     with open('planner.json', 'w') as planner:
-        json.dump(meal_plan, planner, indent=4)
+        json.dump(data[MEAL_PLAN], planner, indent=4)
+    
+    with open('shopping_list.json', 'w') as shoplist:
+        json.dump(data[SHOPPING_LIST], shoplist, indent=4)
 
-def collect_data():
-    recipes, meal_plan = {}, {}
+def collect_data(data):
+    field_names = data.keys()
 
-    try:
-        # read json recipe book from file
-        with open('recipes.json', 'r',) as recipe_book:
-            recipes = json.load(recipe_book)
+    def handle_json_read(filename):
+        try:
+            with open(filename, 'r',) as obj:
+                return json.load(obj)
+        except (json.JSONDecodeError, FileNotFoundError):
+            print('Valid {} file not found. Continuing without reading...'.format(filename))
 
-        with open('planner.json', 'r',) as planner:
-            meal_plan = json.load(planner)
+    for field in field_names:
+        data[field] = handle_json_read('{}.json'.format(field))
 
-    except json.JSONDecodeError:
-        print('Valid .json file not found. Continuing wtihout reading...')
-
-    return recipes, meal_plan
-
-def add_recipe(recipes):
+def add_recipe(data):
     '''
     Adds a recipe with user-inputted name, quantity, ingredients, meal times, and tags.
 
-    @param recipes  Dictionary containing all existing recipes to append onto.
+    @param data     Dict containing a recipe book dict that contains all existing recipes to append onto
     '''
-    name = str(input("Dish/Recipe name:"))
-
-    info = {}
-    info['ingredients'] = {}
-
     try:
+        recipes = data[RECIPES]
+        name = str(input("Dish/Recipe name:"))
+
+        info = {}
+        info['ingredients'] = {}
+        # Loop infinitely to add arbitrary # of ingredients
         while True:
             ingredient_name = input('Ingredient name:').lower().strip()
             quantity = input('Quantity: ')
 
-            if not bool(re.match("\A(\d+([\/]\d*){0,1} (\w|\s)*)\Z", quantity)):
+            # Use regex to enforce correct formatting of input (eg. '0', '2 pcs', '3.4 grams', '1/4 cups', etc.)
+            number = "\d+([\/|.]\d+){0,1}" # eg. 0, 1/4, 1.4 ...
+            unit = "(\w|\s)*"              # eg. "pcs", "big cloves", "neatly sorted funions"
+            test_str = "\A{}( {}){{0,1}}\Z".format(number, unit)
+            if not bool(re.match(test_str, quantity)):
                 print("Invalid quantity. Needs to be '<number> <units>' ")
-                return
+                continue
             
             amount, unit = quantity.split(' ', 1)
 
             info['ingredients'][ingredient_name] = (amount, unit)
         
-            to_continue = input('More ingredients? (y/*)').lower()
-            if to_continue == 'y':
+            # Loop infinitely to poll user for proper response to continue or not
+            more_ingredients = False
+            while True:
+                to_continue = input('More ingredients? (y/n)').lower()
+                if to_continue == 'y':
+                    more_ingredients = True
+                    break
+                elif to_continue == 'n':
+                    more_ingredients = False
+                    break
+                    
+            if more_ingredients:
                 continue
             else:
                 break
@@ -88,13 +105,17 @@ def add_recipe(recipes):
 
     except (ValueError, IndexError):
         print('Invalid input. Try again...')
+    
+    except(KeyError):
+        print('FATAL error, no recipe book exists...')
 
-def remove_recipe(recipes):
+def remove_recipe(data):
     '''
     Removes a recipe by the given name.
 
-    @param recipes Dictionary containing all existing recipes to remove from.
+    @param data     Dict containing a recipes dict containing all existing recipes to remove from.
     '''
+    recipes = data[RECIPES]
     try:
         print_recipes(recipes)
         
@@ -106,12 +127,25 @@ def remove_recipe(recipes):
     except (KeyError, IndexError):
         print('Recipe does not exist.')
 
-def plan_meals(recipes):
+def gen_meal_plan(data):
+    """
+    Generates a new meal plan for the week, starting on the coming Monday.
+
+    @param data     Dict containing recipes dict
+
+    @return A tuple of:
+            - Meal plan dict
+            - Shopping list dict
+    """
     try:
+        recipes = data[RECIPES]
         DAYS_WITH_UNIQUE_MEALS = int(input('How many days with unique meals do you want?'))
         MEALS_PER_DAY = int(input('How many meals do you eat per day?'))
     except ValueError:
         print('Error: invalid input.')
+        return
+    except KeyError:
+        print('FATAL error, recipe book does not exist...')
         return
 
     plan = {}
@@ -159,9 +193,41 @@ def plan_meals(recipes):
 
         meal_day += timedelta(days=1)
 
-    return plan
+    shoplist = gen_shopping_list(plan)
 
-def print_recipes(recipes):
+    return plan, shoplist
+
+def gen_shopping_list(data):
+    # TODO: if unit type isnt the same, just append onto list keyed by ingredient name; otherwise, add like units together
+    try:
+        meal_plan = data[MEAL_PLAN]
+    except KeyError:
+        print('FATAL error: meal plan does not exist...')
+        return
+    shopping_list = {}
+
+    for day in meal_plan:
+        dishes = meal_plan[day][1]
+        for dish in dishes:
+            dish_name = dish[0]
+            dish_recipe = dish[1]
+            ingredients = dish_recipe['ingredients']
+
+            for i in ingredients:
+                # if ingredient already exists in this list, append quantity to its list
+                if i in shopping_list:
+                    shopping_list[i].append('{} {}'.format(ingredients[i][0], ingredients[i][1]))
+
+    return shopping_list
+
+
+
+def print_recipes(data):
+    try:
+        recipes = data[RECIPES]
+    except KeyError:
+        print('FATAL error: recipe book does not exist...')
+
     recipe_names = list(recipes.keys())
 
     for idx, name in enumerate(recipe_names):
@@ -169,10 +235,13 @@ def print_recipes(recipes):
 
     input('Press ENTER to continue...')
 
-def get_shopping_list(meal_plan):
-    return
+def print_meal_plan(data):
+    try:
+        meal_plan = data[MEAL_PLAN]
+    except KeyError:
+        print('FATAL error: meal plan dict does not exist...')
+        return
 
-def view_meal_plan(meal_plan):
     for day_num in meal_plan:
         day = datetime.fromisoformat(meal_plan[day_num][0])
         dishes = meal_plan[day_num][1]
@@ -180,35 +249,35 @@ def view_meal_plan(meal_plan):
         datestring = day.strftime('%A %b %d %y')
 
         user_menu.print_meal_day(datestring, dishes)
-    return
 
-def exit_planner(recipes, meal_plan):
-    write_data(recipes, meal_plan)
+def print_shopping_list(data):
+    try:
+        shopping_list = data[SHOPPING_LIST]
+    except KeyError:
+        print('FATAL error: meal plan does not exist...')
+        return
+
+    if shopping_list is None or len(shopping_list) == 0:
+        print("Cannot print a shopping list that doesn't exist. Please generate a meal plan first.")
+        return
+    user_menu.print()
+
+def exit_planner(data):
+    write_data(data)
     quit()
 
-def user_phase(recipes, meal_plan):
+def user_phase(data, options):
+
     while True:
         try:
-            choice = input('>> ')
+            choice = int(input('>> ')) - 1
 
-            if choice == '1':
-                add_recipe(recipes)
-            elif choice == '2':
-                remove_recipe(recipes)
-            elif choice == '3':
-                meal_plan = plan_meals(recipes)
-            elif choice == '4':
-                print_recipes(recipes)
-            elif choice == '5':
-                get_shopping_list(meal_plan)
-            elif choice == '6':
-                view_meal_plan(meal_plan)
-            elif choice == '7':
-                exit_planner(recipes, meal_plan)
-            
+            # Index into list of function ptrs
+            options[choice](data)
+
             print(user_menu.CHOICES)
 
-        except ValueError:
+        except (ValueError, KeyError):
             print('Invalid input.')
 
 
@@ -252,12 +321,24 @@ def edit_item_recursive(item):
 
 
 def main():
+    OPTIONS = [add_recipe, 
+               remove_recipe, 
+               gen_meal_plan, 
+               print_recipes, 
+               print_shopping_list,
+               print_meal_plan,
+               exit_planner]
+
     print(user_menu.START)
 
-    (RECIPES, MEAL_PLAN) = collect_data()
+    DATA = { RECIPES : None,
+             MEAL_PLAN : None,
+             SHOPPING_LIST : None }
     
+    collect_data(DATA)
+
     # user does stuff
-    user_phase(RECIPES, MEAL_PLAN)
+    user_phase(DATA, OPTIONS)
 
 if __name__ == "__main__":
     main()
