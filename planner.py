@@ -30,17 +30,11 @@ sample = {
 
 def write_data(data):
     # write json recipe back to file
-    with open('recipes.json', 'w') as recipe_book:
-        json.dump(data[RECIPES], recipe_book, indent=4)
-
-    with open('planner.json', 'w') as planner:
-        json.dump(data[MEAL_PLAN], planner, indent=4)
-    
-    with open('shopping_list.json', 'w') as shoplist:
-        json.dump(data[SHOPPING_LIST], shoplist, indent=4)
+    for field in data:
+        with open("{}.json".format(field), 'w') as obj:
+            json.dump(data[field], obj, indent=4)
 
 def collect_data(data):
-    field_names = data.keys()
 
     def handle_json_read(filename):
         try:
@@ -49,7 +43,7 @@ def collect_data(data):
         except (json.JSONDecodeError, FileNotFoundError):
             print('Valid {} file not found. Continuing without reading...'.format(filename))
 
-    for field in field_names:
+    for field in data:
         data[field] = handle_json_read('{}.json'.format(field))
 
 def add_recipe(data):
@@ -97,7 +91,7 @@ def add_recipe(data):
             else:
                 break
 
-        info['meal times'] = input('Meal times?').lower().split()
+        info['meal times'] = input('Meal times?').lower().replace(',','').split()
 
         info['tags'] = input('Tags (separate by spaces):').lower().split()
 
@@ -115,9 +109,9 @@ def remove_recipe(data):
 
     @param data     Dict containing a recipes dict containing all existing recipes to remove from.
     '''
-    recipes = data[RECIPES]
     try:
-        print_recipes(recipes)
+        recipes = data[RECIPES]
+        print_recipes(data)
         
         choice = input('Select the recipe # you wish to delete:\n>> ')
         recipe = list(recipes.keys())[choice]
@@ -126,6 +120,9 @@ def remove_recipe(data):
 
     except (KeyError, IndexError):
         print('Recipe does not exist.')
+    
+    except ValueError:
+        print('Invalid choice.')
 
 def gen_meal_plan(data):
     """
@@ -139,8 +136,8 @@ def gen_meal_plan(data):
     """
     try:
         recipes = data[RECIPES]
-        DAYS_WITH_UNIQUE_MEALS = int(input('How many days with unique meals do you want?'))
-        MEALS_PER_DAY = int(input('How many meals do you eat per day?'))
+        DAYS_WITH_UNIQUE_MEALS = int(input('How many days with unique meals do you want?\n >> '))
+        MEALS_PER_DAY = int(input('How many meals do you eat per day?\n >> '))
     except ValueError:
         print('Error: invalid input.')
         return
@@ -170,7 +167,7 @@ def gen_meal_plan(data):
             if meal_type in recipes[dish]['meal times']:
                 if len(too_recent) != 0:
                     too_recent.pop(0)
-                    too_recent.append(dish)
+                too_recent.append(dish)
                 return dish
             if traversed == recipes:
                 print('Unable to find a valid {}.'.format(meal_type))
@@ -193,9 +190,12 @@ def gen_meal_plan(data):
 
         meal_day += timedelta(days=1)
 
-    shoplist = gen_shopping_list(plan)
+    # Record meal plan and its respective shopping list into data obj
+    data[MEAL_PLAN] = plan
+    
+    gen_shopping_list(data)
 
-    return plan, shoplist
+    print() # newline
 
 def gen_shopping_list(data):
     # TODO: if unit type isnt the same, just append onto list keyed by ingredient name; otherwise, add like units together
@@ -214,11 +214,15 @@ def gen_shopping_list(data):
             ingredients = dish_recipe['ingredients']
 
             for i in ingredients:
+                item = '{} {} ({})'.format(ingredients[i][0], ingredients[i][1], dish_name)
                 # if ingredient already exists in this list, append quantity to its list
                 if i in shopping_list:
-                    shopping_list[i].append('{} {}'.format(ingredients[i][0], ingredients[i][1]))
+                    # TODO: add like units together (fractions utilize the imported module)
+                    shopping_list[i].append(item)
+                else:
+                    shopping_list[i] = [item]
 
-    return shopping_list
+    data[SHOPPING_LIST] = shopping_list
 
 
 
@@ -260,7 +264,8 @@ def print_shopping_list(data):
     if shopping_list is None or len(shopping_list) == 0:
         print("Cannot print a shopping list that doesn't exist. Please generate a meal plan first.")
         return
-    user_menu.print()
+
+    user_menu.print_shopping_list(shopping_list)
 
 def exit_planner(data):
     write_data(data)
@@ -321,6 +326,7 @@ def edit_item_recursive(item):
 
 
 def main():
+    # refer to user_menu.py for ordering
     OPTIONS = [add_recipe, 
                remove_recipe, 
                gen_meal_plan, 
