@@ -46,3 +46,8 @@ def print_meal_day(datestring, dishes):
     for dish in dishes:
         meal_day += "{}\n\t".format(dish[0])
     print(meal_day)
+
+
+def print_shopping_list(shopping_list):
+    #TODO: sort alphabetically; format <Ingr. name>: [<#> <unit_0>, <#> <unit_1>, ...]
+    return

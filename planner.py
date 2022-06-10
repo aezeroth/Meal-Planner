@@ -60,7 +60,11 @@ def add_recipe(data):
         info['ingredients'] = {}
         # Loop infinitely to add arbitrary # of ingredients
         while True:
-            ingredient_name = input('Ingredient name:').lower().strip()
+            ingredient_name = input('Ingredient name (leave empty to stop adding ingredients)\n >> ').lower().strip()
+            
+            if ingredient_name == "":
+                break
+
             quantity = input('Quantity: ')
 
             # Use regex to enforce correct formatting of input (eg. '0', '2 pcs', '3.4 grams', '1/4 cups', etc.)
@@ -198,7 +202,7 @@ def gen_meal_plan(data):
     print() # newline
 
 def gen_shopping_list(data):
-    # TODO: if unit type isnt the same, just append onto list keyed by ingredient name; otherwise, add like units together
+    # If unit type isnt the same, just append onto list keyed by ingredient name; otherwise, add like units together
     try:
         meal_plan = data[MEAL_PLAN]
     except KeyError:
@@ -209,18 +213,28 @@ def gen_shopping_list(data):
     for day in meal_plan:
         dishes = meal_plan[day][1]
         for dish in dishes:
-            dish_name = dish[0]
-            dish_recipe = dish[1]
+            dish_name, dish_recipe = dish
             ingredients = dish_recipe['ingredients']
 
             for i in ingredients:
-                item = '{} {} ({})'.format(ingredients[i][0], ingredients[i][1], dish_name)
+                (ingred_num, ingred_unit) = ingredients[i]
+
+                if '/' in ingred_num: # if the number is a fraction, convert to float using Fraction module
+                    numerator, denominator = Fraction(ingred_num).as_integer_ratio()
+                    ingred_num = round(numerator / denominator, 2)
+                elif '.' in ingred_num:
+                    ingred_num = float(ingred_num)
+                else:
+                    ingred_num = int(ingred_num)
+                
                 # if ingredient already exists in this list, append quantity to its list
                 if i in shopping_list:
-                    # TODO: add like units together (fractions utilize the imported module)
-                    shopping_list[i].append(item)
+                    if ingred_unit in shopping_list[i]:
+                        shopping_list[i][ingred_unit] += ingred_num
+                    else:
+                        shopping_list[i][ingred_unit] = ingred_num
                 else:
-                    shopping_list[i] = [item]
+                    shopping_list[i] = { ingred_unit : ingred_num }
 
     data[SHOPPING_LIST] = shopping_list
 
