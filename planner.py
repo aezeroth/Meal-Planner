@@ -18,15 +18,18 @@ DAYS_WITH_UNIQUE_MEALS = 3
 
 sample = {
     'Mapo Tofu' : { 
-        'ingredients' : {'tofu' : (1, Units.PACKS),
-                        'ground pork' : (500, Units.GRAMS) },
+        'ingredients' : {'tofu' : ("1", Units.PACKS),
+                        'ground pork' : ("500", Units.GRAMS) },
         'meal times'  : [MealType.LUNCH, MealType.DINNER],
         'tags'        : ['asian', 'chinese', 'protein', 'spicy']
     }
 }
 
 
-#TODO: plan just one day
+"""
+TODO: 
+    - plan just one day?
+"""
 
 def write_data(data):
     # write json recipe back to file
@@ -238,7 +241,9 @@ def gen_shopping_list(data):
 
     data[SHOPPING_LIST] = shopping_list
 
-
+def exit_planner(data):
+    write_data(data)
+    quit()
 
 def print_recipes(data):
     try:
@@ -281,9 +286,7 @@ def print_shopping_list(data):
 
     user_menu.print_shopping_list(shopping_list)
 
-def exit_planner(data):
-    write_data(data)
-    quit()
+
 
 def user_phase(data, options):
 

@@ -1,4 +1,5 @@
 import datetime
+import pprint
 
 # console for now
 current_date = datetime.datetime.now().strftime('%A %B %d, %Y')
@@ -50,4 +51,12 @@ def print_meal_day(datestring, dishes):
 
 def print_shopping_list(shopping_list):
     #TODO: sort alphabetically; format <Ingr. name>: [<#> <unit_0>, <#> <unit_1>, ...]
-    return
+    print('\nSHOPPING LIST')
+    for item in shopping_list:
+        str = "  - {}\n\t+ ".format(item.title())
+        for idx, unit in enumerate(shopping_list[item]):
+            str += "{} {}".format(shopping_list[item][unit], unit)
+            if idx < len(shopping_list[item]) - 1:
+                str += ","
+            str += " "
+        print(str)
