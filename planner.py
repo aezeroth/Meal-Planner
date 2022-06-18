@@ -78,7 +78,10 @@ def add_recipe(data):
                 print("Invalid quantity. Needs to be '<number> <units>' ")
                 continue
             
-            amount, unit = quantity.split(' ', 1)
+            if ' ' in quantity:
+                amount, unit = quantity.split(' ', 1)
+            else:
+                amount, unit = quantity, ''
 
             info['ingredients'][ingredient_name] = (amount, unit)
         
@@ -192,8 +195,8 @@ def gen_meal_plan(data):
         breakfast = pick_meal(MealType.BREAKFAST)
         lunch = pick_meal(MealType.LUNCH)
         dinner = pick_meal(MealType.DINNER)
-
-        plan[day] = (meal_day.isoformat(), [(breakfast, recipes[breakfast]), (lunch, recipes[lunch]), (dinner, recipes[dinner])])
+        
+        plan[meal_day.isoformat()] = [breakfast, lunch, dinner]
 
         meal_day += timedelta(days=1)
 
@@ -202,22 +205,22 @@ def gen_meal_plan(data):
     
     gen_shopping_list(data)
 
-    print() # newline
+    print("Done!")
 
 def gen_shopping_list(data):
     # If unit type isnt the same, just append onto list keyed by ingredient name; otherwise, add like units together
     try:
         meal_plan = data[MEAL_PLAN]
+        recipes = data[RECIPES]
     except KeyError:
         print('FATAL error: meal plan does not exist...')
         return
     shopping_list = {}
 
     for day in meal_plan:
-        dishes = meal_plan[day][1]
+        dishes = meal_plan[day]
         for dish in dishes:
-            dish_name, dish_recipe = dish
-            ingredients = dish_recipe['ingredients']
+            ingredients = recipes[dish]['ingredients']
 
             for i in ingredients:
                 (ingred_num, ingred_unit) = ingredients[i]
@@ -256,7 +259,6 @@ def print_recipes(data):
     for idx, name in enumerate(recipe_names):
         print('{}. {}'.format(idx, name))
 
-    input('Press ENTER to continue...')
 
 def print_meal_plan(data):
     try:
@@ -265,11 +267,11 @@ def print_meal_plan(data):
         print('FATAL error: meal plan dict does not exist...')
         return
 
-    for day_num in meal_plan:
-        day = datetime.fromisoformat(meal_plan[day_num][0])
-        dishes = meal_plan[day_num][1]
+    for day in meal_plan:
+        datestring = datetime.fromisoformat(day)
+        dishes = meal_plan[day]
         
-        datestring = day.strftime('%A %b %d %y')
+        datestring = datestring.strftime('%A %b %d %y')
 
         user_menu.print_meal_day(datestring, dishes)
 
@@ -296,6 +298,9 @@ def user_phase(data, options):
 
             # Index into list of function ptrs
             options[choice](data)
+
+            input('\nPress ENTER to continue...')
+            print()
 
             print(user_menu.CHOICES)
 

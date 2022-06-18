@@ -45,7 +45,7 @@ EDIT_OPTIONS = """
 def print_meal_day(datestring, dishes):
     meal_day = "{}:\n\t".format(datestring)
     for dish in dishes:
-        meal_day += "{}\n\t".format(dish[0])
+        meal_day += "{}\n\t".format(dish)
     print(meal_day)
 
 
